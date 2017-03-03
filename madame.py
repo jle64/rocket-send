@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
 """Usage:
-        madame --rocket=<rocket-url> --user=<user> --password=<password> --channel=<channel>
+        madame --url=<url> --channel=<channel> [--user=<user>] [--password=<password>]
 
 Sends a pic of the day from Bonjour Madame to a Rocket Chat channel
 
 Options:
-  --rocket=<rocket-url>     Rocket Chat URL
+  --url=<url>               Rocket Chat URL
   --channel=<channel>       Rocket Chat channel
-  -u --user=<user>          Rocket Chat username
-  -p --password=<password>  Rocket Chat password
+  -u --user=<user>          Rocket Chat username (can be set in ~/.netrc)
+  -p --password=<password>  Rocket Chat password (can be set in ~/.netrc)
   -h --help                 show this help
 """
 
-from rocket import Rocket
+import netrc
+import sys
+
 import feedparser
 from bs4 import BeautifulSoup
 from docopt import docopt
+
+from rocket import Rocket
 
 
 def get_img_from_rss():
@@ -33,15 +37,29 @@ def get_img_from_rss():
 if __name__ == "__main__":
     arguments = docopt(__doc__)
 
-    rocket = Rocket()
-    rocket.url = arguments['--rocket'] + '/api/v1'
-    rocket.user = {'username': arguments['--user'],
-                   'password': arguments['--password']}
-    rocket.alias = 'BonjourBot'
-    rocket.auth()
-
+    url = arguments['--url']
     channel = arguments['--channel']
+    user = arguments['--user']
+    password = arguments['--password']
+
+    if not user and not password:
+        authenticators = netrc.netrc().authenticators(url)
+        user = authenticators[0]
+        password = authenticators[2]
+
+    if not user or not password:
+        print('Missing user and/or password.\n'
+              'Make sure to specify them in command line or in ~/.netrc.',
+              file=sys.stderr)
+        sys.exit(1)
+
+    rocket = Rocket()
+    rocket.url = url + '/api/v1'
+    rocket.user = {'username': user,
+                   'password': password}
+
+    rocket.auth()
+    rocket.alias = 'BonjourBot'
 
     img = get_img_from_rss()
-
     rocket.send_message(img['title'], img['url'], channel)

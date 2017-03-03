@@ -6,7 +6,7 @@ class Rocket():
         self.url = ''
         self.user = {}
         self.headers = {}
-        self.alias = 'BonjourBOT'
+        self.alias = ''
 
     def auth(self):
         authdata = r.post(self.url + "/login", data=self.user).json()['data']
@@ -14,7 +14,7 @@ class Rocket():
                         'X-User-Id': authdata['userId']}
 
     def get_channels(self):
-        return r.get(self.url + "/channels.list", headers=headers)
+        return r.get(self.url + "/channels.list", headers=self.headers)
 
     def send_message(self, message_title, message_text, channel, attachments=None):
         # attachment example:
