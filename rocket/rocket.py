@@ -16,16 +16,11 @@ class Rocket():
     def get_channels(self):
         return r.get(self.url + "/channels.list", headers=self.headers)
 
-    def send_message(self, message_title, message_text, channel, attachments=None):
-        # attachment example:
-        # [{'title':'My title',
-        #   'text':'My text',
-        #   'collapsed': 'false'}]
+    def send_message(self, message_title, message_text, channel):
         message = {'channel': channel,
                    'title': message_title,
                    'text': message_text,
-                   'alias': self.alias,
-                   'attachments': attachments}
+                   'alias': self.alias}
         return r.post(self.url + "/chat.postMessage",
                       headers=self.headers,
                       data=message)
