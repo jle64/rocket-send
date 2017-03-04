@@ -37,7 +37,9 @@ if __name__ == "__main__":
     else:
         rocket = Rocket()
         url = urlparse(arguments['--url'])
-        rocket.url = url.scheme + url.netloc + '/api/v1'
+        rocket.url = '{0}://{1}{2}'.format(url.scheme,
+                                           url.hostname,
+                                           '/api/v1')
         rocket.user = {'username': url.username,
                        'password': url.password}
         rocket.alias = arguments['--alias'] or \
