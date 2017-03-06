@@ -52,7 +52,8 @@ class RocketSend():
 
     def call_module(self):
         message = {}
-        module = import_module('rocket.modules.' + arguments['<module>'])
+        module_name = arguments['<module>']
+        module = import_module('rocket.modules.' + module_name).Module()
         message = module.get_message()
         self.rocket.send_message(message['title'],
                                  message['text'],
@@ -88,5 +89,5 @@ if __name__ == "__main__":
             rs.send_message()
         elif arguments['module']:
             rs.call_module()
-        elif arguments['iterate']:
+        elif arguments['loop']:
             rs.loop()
