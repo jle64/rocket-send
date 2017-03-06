@@ -2,17 +2,19 @@
 """Usage:
         rocket-send message --url=<url> [options] <message>
         rocket-send module --url=<url> [options] <module>
+        rocket-send loop --url=<url> [options] <modules>
         rocket-send list-channels --url=<url>
         rocket-send list-modules
 
 Sends the specified message or a message from a module to a Rocket.Chat channel
 
 Options:
-  -u --url=<url>           URL in the form:
-                           http(s)://user:password@rocket.chat/channel
-  -a --alias=<alias>       user alias to use (username will stay visible)
-  -t --title=<title>       message title (only when not using a module)
-  -h --help                show this help
+  -u --url=<url>         URL in the form:
+                         http(s)://user:password@rocket.chat/channel
+  -a --alias=<alias>     user alias to use (username will stay visible)
+  -t --title=<title>     message title (only available in message mode)
+  -d --daemonize         daemonize the process (only available in loop mode)
+  -h --help              show this help
 """
 
 import sys
@@ -26,37 +28,65 @@ from docopt import docopt
 import rocket.modules as modules
 from rocket.rocket import Rocket
 
-if __name__ == "__main__":
-    arguments = docopt(__doc__)
+class RocketSend():
+    def __init__(self):
+        self.url = None
+        self.rocket = Rocket()
 
-    if arguments['list-modules']:
+    def list_modules(self):
         for file in glob(modules.__path__._path[0] + '/*.py'):
             module_name = basename(file)[:-3]
             module = import_module('rocket.modules.' + module_name)
             print('{0} - {1}'.format(module_name, module.__doc__))
-    else:
-        rocket = Rocket()
-        url = urlparse(arguments['--url'])
-        rocket.url = '{0}://{1}{2}'.format(url.scheme,
-                                           url.hostname,
-                                           '/api/v1')
-        rocket.user = {'username': url.username,
-                       'password': url.password}
-        rocket.alias = arguments['--alias'] or \
-                       '{0}-Bot'.format(url.username)
-        rocket.auth()
+
+    def list_channels(self):
+        print(self.rocket.get_channels())
+
+    def send_message(self):
         message = {}
+        message['text'] = arguments['<message>']
+        message['title'] = arguments['--title'] or ''
+        self.rocket.send_message(message['title'],
+                                 message['text'],
+                                 self.url.path[1:])
+
+    def call_module(self):
+        message = {}
+        module = import_module('rocket.modules.' + arguments['<module>'])
+        message = module.get_message()
+        self.rocket.send_message(message['title'],
+                                 message['text'],
+                                 self.url.path[1:])
+
+    def setup_rocket(self):
+        self.url = urlparse(arguments['--url'])
+        self.rocket.url = '{0}://{1}{2}'.format(self.url.scheme,
+                                                self.url.hostname,
+                                                '/api/v1')
+        self.rocket.user = {'username': self.url.username,
+                            'password': self.url.password}
+        self.rocket.alias = arguments['--alias'] or \
+                        '{0}-Bot'.format(self.url.username)
+        try:
+            self.rocket.auth()
+        except:
+            print('Authentication failed.', file=sys.stderr)
+            sys.exit(1)
+
+if __name__ == "__main__":
+    arguments = docopt(__doc__)
+
+    rs = RocketSend()
+
+    if arguments['list-modules']:
+        rs.list_modules()
+    else:
+        rs.setup_rocket()
         if arguments['list-channels']:
-            print(rocket.get_channels())
+            rs.list_channels()
         elif arguments['message']:
-            message['text'] = arguments['<message>']
-            message['title'] = arguments['--title'] or ''
-            rocket.send_message(message['title'],
-                                message['text'],
-                                url.path[1:])
+            rs.send_message()
         elif arguments['module']:
-            module = import_module('rocket.modules.' + arguments['<module>'])
-            message = module.get_message()
-            rocket.send_message(message['title'],
-                                message['text'],
-                                url.path[1:])
+            rs.call_module()
+        elif arguments['iterate']:
+            rs.loop()

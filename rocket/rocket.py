@@ -14,7 +14,11 @@ class Rocket():
                         'X-User-Id': authdata['userId']}
 
     def get_channels(self):
-        return r.get(self.url + "/channels.list", headers=self.headers)
+        channels = r.get(self.url + "/channels.list", headers=self.headers)
+        channel_names = []
+        for channel in channels.json()['channels']:
+            channel_names.append(channel['name'])
+        return channel_names
 
     def send_message(self, message_title, message_text, channel):
         message = {'channel': channel,
