@@ -25,6 +25,7 @@ from urllib.parse import urlparse
 from time import sleep
 
 from docopt import docopt
+from daemonize import Daemonize
 
 import rocket.modules as modules
 from rocket.rocket import Rocket
@@ -106,4 +107,10 @@ if __name__ == "__main__":
         elif arguments['module']:
             rs.call_module()
         elif arguments['loop']:
-            rs.loop()
+            if arguments['--daemonize']:
+                daemon = Daemonize(app='rocket-send',
+                                   action=rs.loop,
+                                   pid='/tmp/rocket-send.pid')
+                daemon.start()
+            else:
+                rs.loop()
