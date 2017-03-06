@@ -22,6 +22,7 @@ from glob import glob
 from importlib import import_module
 from os.path import basename
 from urllib.parse import urlparse
+from time import sleep
 
 from docopt import docopt
 
@@ -73,6 +74,21 @@ class RocketSend():
         except:
             print('Authentication failed.', file=sys.stderr)
             sys.exit(1)
+
+    def loop(self):
+        module_names = arguments['<modules>'].split(',')
+        modules = []
+        for module_name in module_names:
+            module = import_module('rocket.modules.' + module_name).Module()
+            modules.append(module)
+        while True:
+            for module in modules:
+                message = module.get_message()
+                if message:
+                    self.rocket.send_message(message['title'],
+                                             message['text'],
+                                             self.url.path[1:])
+            sleep(10)
 
 if __name__ == "__main__":
     arguments = docopt(__doc__)
