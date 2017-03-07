@@ -1,20 +1,25 @@
 #!/usr/bin/env python3
-"""Usage:
-        rocket-send message --url=<url> [options] <message>
-        rocket-send module --url=<url> [options] <module>
-        rocket-send loop --url=<url> [options] <modules>
-        rocket-send list-channels --url=<url>
-        rocket-send list-modules
+"""Usage:    rocket-send message --url=<url> [options] <message>
+          rocket-send module --url=<url> [options] <module>
+          rocket-send daemonize --url=<url> [options] <modules>
+          rocket-send list-channels --url=<url>
+          rocket-send list-modules
 
-Sends the specified message or a message from a module to a Rocket.Chat channel
+Send the specified message or a message from a module to a Rocket.Chat channel
+or run as a daemon and continuously send module messages
 
 Options:
+  -h --help              show this help
   -u --url=<url>         URL in the form:
                          http(s)://user:password@rocket.chat/channel
   -a --alias=<alias>     user alias to use (username will stay visible)
-  -t --title=<title>     message title (only available in message mode)
-  -d --daemonize         daemonize the process (only available in loop mode)
-  -h --help              show this help
+
+Message mode options:
+  -t --title=<title>     message title
+
+Daemon mode options:
+  -f --foreground        keep the process in foreground
+  -p --pidfile=<pidfile> path to pidfile (defaults to /tmp/rocket-send.pid)
 """
 
 import sys
@@ -76,7 +81,7 @@ class RocketSend():
             print('Authentication failed.', file=sys.stderr)
             sys.exit(1)
 
-    def loop(self):
+    def main(self):
         module_names = arguments['<modules>'].split(',')
         modules = []
         for module_name in module_names:
@@ -84,11 +89,14 @@ class RocketSend():
             modules.append(module)
         while True:
             for module in modules:
-                message = module.get_message()
-                if message:
-                    self.rocket.send_message(message['title'],
-                                             message['text'],
-                                             self.url.path[1:])
+                try:
+                    message = module.get_message()
+                    if message:
+                        self.rocket.send_message(message['title'],
+                                                 message['text'],
+                                                 self.url.path[1:])
+                except ConnectionError:
+                    pass
             sleep(10)
 
 if __name__ == "__main__":
@@ -106,11 +114,10 @@ if __name__ == "__main__":
             rs.send_message()
         elif arguments['module']:
             rs.call_module()
-        elif arguments['loop']:
-            if arguments['--daemonize']:
-                daemon = Daemonize(app='rocket-send',
-                                   action=rs.loop,
-                                   pid='/tmp/rocket-send.pid')
-                daemon.start()
-            else:
-                rs.loop()
+        elif arguments['daemonize']:
+            pidfile = arguments['--pidfile'] or '/tmp/rocket-send.pid'
+            daemon = Daemonize(app='rocket-send',
+                               action=rs.main,
+                               pid=pidfile,
+                               foreground=arguments['--foreground'])
+            daemon.start()
