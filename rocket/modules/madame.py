@@ -5,7 +5,7 @@ from rocket.modulebase import ModuleBase
 
 
 class Module(ModuleBase):
-    def __get_message__(self):
+    def __get_message__(self, args=None):
         feed_url = 'http://feeds.feedburner.com/BonjourMadame?format=xml'
         rss = feedparser.parse(feed_url)
         last_post = rss['entries'][0]

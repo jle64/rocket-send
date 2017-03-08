@@ -5,7 +5,7 @@ from rocket.modulebase import ModuleBase
 
 
 class Module(ModuleBase):
-    def __get_message__(self):
+    def __get_message__(self, args=None):
         site_url = 'https://apod.nasa.gov/apod/'
         page_url = site_url + 'astropix.html'
         page = r.get(page_url).text

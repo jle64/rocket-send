@@ -4,7 +4,7 @@ from rocket.modulebase import ModuleBase
 
 
 class Module(ModuleBase):
-    def __get_message__(self):
+    def __get_message__(self, args=None):
         # use yesterday picture as today one might not be available yet
         yesterday = date.today() - timedelta(1)
         base_url = 'http://www.astronomy.com/-/media/' + \
